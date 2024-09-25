@@ -38,7 +38,7 @@
                     
                     <!-- Display the quantity and the total price -->
                     <p>Quantity: {{ order.quantity }}</p>
-                    <p>Total Price: ${{ order.total_price }}</p> <!-- Display the total price -->
+                    <p>Total Price: {{ order.total_price }} Birr</p> <!-- Display the total price -->
                     
                     <form id="paymentForm" method="POST" enctype="multipart/form-data">
                         {% csrf_token %}
@@ -100,11 +100,11 @@
         const submitButton = document.querySelector('button[type="submit"]');
         const instructionsDiv = document.getElementById('instructions');
         const instructions = {
-            cbe: `Transfer the total price of ${{ order.total_price }} to the Commercial Bank of Ethiopia. Use account number: {{ random_account_number }}.`,
-            boa: `Transfer the total price of ${{ order.total_price }} to the Bank of Abyssinia. Use account number: {{ random_account_number }}.`,
-            awash: `Transfer the total price of ${{ order.total_price }} to Awash Bank. Use account number: {{ random_account_number }}.`,
-            enat: `Transfer the total price of ${{ order.total_price }} to Enat Bank. Use account number: {{ random_account_number }}.`,
-            dashen: `Transfer the total price of ${{ order.total_price }} to Dashen Bank. Use account number: {{ random_account_number }}.`,
+            cbe: `Transfer the total price of {{ order.total_price }} birr to the Commercial Bank of Ethiopia. Use account number: {{ random_account_number }}.`,
+            boa: `Transfer the total price of {{ order.total_price }}  birr  to the Bank of Abyssinia. Use account number: {{ random_account_number }}.`,
+            awash: `Transfer the total price of {{ order.total_price }} birr  to Awash Bank. Use account number: {{ random_account_number }}.`,
+            enat: `Transfer the total price of {{ order.total_price }} birr to Enat Bank. Use account number: {{ random_account_number }}.`,
+            dashen: `Transfer the total price of {{ order.total_price }} birr to Dashen Bank. Use account number: {{ random_account_number }}.`,
             chapa: `Chapa payment is coming soon. Please choose another payment method.`,
             telebirr: `Telebirr payment is coming soon. Please choose another payment method.`
         };
