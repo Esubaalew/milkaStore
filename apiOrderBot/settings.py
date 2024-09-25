@@ -31,6 +31,8 @@ ALLOWED_HOSTS = [".4gmobiles.com", "localhost","apiorderbot.onrender.com"]
 # Application definition
 
 INSTALLED_APPS = [
+"unfold.contrib.import_export",
+    "import_export",
     "unfold",
     "unfold.contrib.filters",
     'django.contrib.admin',
