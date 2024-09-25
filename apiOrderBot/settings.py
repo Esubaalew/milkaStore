@@ -31,6 +31,7 @@ ALLOWED_HOSTS = [".4gmobiles.com", "localhost","apiorderbot.onrender.com"]
 # Application definition
 
 INSTALLED_APPS = [
+    "django_flatpickr",
 "unfold.contrib.import_export",
     "import_export",
     "unfold",
