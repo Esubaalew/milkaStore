@@ -1,20 +1,21 @@
 from django.contrib import admin
 from .models import Order, Product
+from unfold.admin import ModelAdmin
 
-
-class OrderAdmin(admin.ModelAdmin):
+class OrderAdmin(ModelAdmin):  # Inherit from Unfold Admin's ModelAdmin
     model = Order
     list_display = ('product_name', 'full_name', 'address', 'phone_number', 'comment', 'quantity', 'order_date')
     list_filter = ('product', 'full_name', 'address', 'phone_number', 'comment', 'quantity', 'order_date')
     search_fields = ('product__name', 'full_name', 'address', 'phone_number', 'comment', 'quantity', 'order_date')
     ordering = ('-order_date',)
+    # You can add custom actions or styling here if needed
 
     def product_name(self, obj):
         return obj.product.name
     product_name.short_description = 'Product'
 
 
-class ProductAdmin(admin.ModelAdmin):
+class ProductAdmin(ModelAdmin):  # Inherit from Unfold Admin's ModelAdmin
     model = Product
     list_display = ('name', 'short_description', 'image', 'price', 'date_added')
     list_filter = ('name', 'price', 'date_added')
@@ -28,7 +29,6 @@ class ProductAdmin(admin.ModelAdmin):
 
 admin.site.register(Order, OrderAdmin)
 admin.site.register(Product, ProductAdmin)
-
 
 # Change the title and header of the admin site
 admin.site.site_header = "Store Administration"
