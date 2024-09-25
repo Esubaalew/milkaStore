@@ -1,0 +1,7 @@
+/.idea
+/.venv
+/media
+
+*.sqlite3
+
+*.log

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Product</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .product-card {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            background-color: white;
+            text-align: center;
+        }
+        .product-image {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+        .btn-primary {
+            background-color: #4CAF50;
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: #45a049;
+        }
+        .form-label {
+            font-weight: bold;
+        }
+        .container {
+            max-width: 600px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <!-- Product Information -->
+        <div class="product-card" id="productCard">
+            <!-- Product details will be populated here -->
+        </div>
+
+        <!-- Error Message Alert -->
+        <div id="errorAlert" class="alert alert-danger d-none" role="alert">
+            <strong>Error!</strong> <span id="errorMessage">Please correct the errors and try again.</span>
+        </div>
+
+        <!-- Order Form -->
+        <div class="mt-4">
+            <h4>Fill out your details to place the order:</h4>
+            <form id="orderForm" method="POST" enctype="multipart/form-data" class="mt-3">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="fullName" class="form-label">Full Name</label>
+                    <input type="text" class="form-control" id="fullName" name="full_name" placeholder="Enter your full name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="address" class="form-label">Address</label>
+                    <input type="text" class="form-control" id="address" name="address" placeholder="Enter your address" required>
+                </div>
+                <div class="mb-3">
+                    <label for="phoneNumber" class="form-label">Phone Number</label>
+                    <input type="tel" class="form-control" id="phoneNumber" name="phone_number" pattern="[0-9]{10}" placeholder="Enter your phone number (10 digits)" required>
+                </div>
+                <div class="mb-3">
+                    <label for="comment" class="form-label">Comment</label>
+                    <textarea class="form-control" id="comment" name="comment" rows="3" placeholder="Add any additional information (optional)"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="quantity" class="form-label">Quantity</label>
+                    <input type="number" class="form-control" id="quantity" name="quantity" min="1" value="1" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100" disabled>Next</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Telegram WebApp JavaScript -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();  // Expands the WebApp to fullscreen
+
+        const phoneInput = document.getElementById('phoneNumber');
+        const quantityInput = document.getElementById('quantity');
+        const submitButton = document.querySelector('button[type="submit"]');
+        const formFields = [phoneInput, quantityInput];
+        const errorAlert = document.getElementById('errorAlert');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Function to check input validity and toggle submit button
+        function validateForm() {
+            const phonePattern = /^[0-9]{10}$/;
+            const isPhoneValid = phonePattern.test(phoneInput.value);
+            const isQuantityValid = quantityInput.value > 0;
+
+            // Toggle button based on validity
+            if (isPhoneValid && isQuantityValid) {
+                submitButton.disabled = false;
+                errorAlert.classList.add('d-none');
+            } else {
+                submitButton.disabled = true;
+                errorAlert.classList.remove('d-none');
+                if (!isPhoneValid) {
+                    errorMessage.textContent = "Invalid phone number. Please enter a valid 10-digit phone number.";
+                } else if (!isQuantityValid) {
+                    errorMessage.textContent = "Quantity must be greater than 0.";
+                }
+            }
+        }
+
+        // Attach input event listener to form fields for real-time validation
+        formFields.forEach(field => {
+            field.addEventListener('input', validateForm);
+        });
+
+        // Add loading state when form is submitted
+        document.getElementById('orderForm').addEventListener('submit', function(event) {
+            const isFormValid = !submitButton.disabled;
+
+            if (!isFormValid) {
+                event.preventDefault();
+                errorAlert.classList.remove('d-none');
+                return;
+            }
+
+            submitButton.disabled = true;
+            submitButton.innerHTML = 'Processing...';
+        });
+
+        // Function to get query parameters
+        function getQueryParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const productIdWithPrefix = urlParams.get('tgWebAppStartParam');  // Use 'tgWebAppStartParam' instead of 'startapp'
+            const productId = productIdWithPrefix ? productIdWithPrefix.replace('product-', '') : null;
+            return {
+                product_id: productId
+            };
+        }
+
+        // Function to fetch and display product details
+        function loadProduct(productId) {
+            fetch(`https://admin.4gmobiles.com/api/products/${productId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const productCard = document.getElementById('productCard');
+                    productCard.innerHTML = `
+                        <img src="${data.image}" alt="${data.name}" class="product-image mb-4">
+                        <h1 class="mb-3">${data.name}</h1>
+                        <p class="text-muted">${data.description}</p>
+                        <h3><strong>Price:</strong> $${data.price}</h3>
+                    `;
+                })
+                .catch(error => {
+                    console.error('Error fetching product:', error);
+                    document.getElementById('productCard').innerHTML = '<p>Failed to load product details. Please try again later.</p>';
+                });
+        }
+
+        // Get product ID from URL and load product details
+        const { product_id } = getQueryParams();
+        if (product_id) {
+            loadProduct(product_id);
+        } else {
+            document.getElementById('productCard').innerHTML = '<p>Product not found.</p>';
+        }
+    </script>
+</body>
+</html>
