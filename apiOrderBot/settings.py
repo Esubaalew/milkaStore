@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "shop.apps.ShopConfig",
     "rest_framework",
     'corsheaders',
+    "Purchase.apps.PurchaseConfig"
 ]
 
 MIDDLEWARE = [
