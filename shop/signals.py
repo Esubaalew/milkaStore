@@ -1,11 +1,12 @@
 import requests
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from .models import Stock
+from .models import Stock, Order
 from django.conf import settings
 from io import BytesIO
 import mimetypes
 import json  # Import json for dumping reply_markup to a JSON string
+
 
 # Your bot token and channel ID
 BOT_TOKEN = 'TOKEN'
@@ -89,3 +90,27 @@ def send_stock_to_channel(sender, instance, created, **kwargs):
 
     except requests.exceptions.RequestException as e:
         print(f"Request failed: {e}")
+
+
+@receiver(pre_save, sender=Order)
+def check_order_is_paid(sender, instance, **kwargs):
+    if instance.pk:
+        previous_order = Order.objects.get(pk=instance.pk)
+        instance._previous_is_paid = previous_order.is_paid
+    else:
+        instance._previous_is_paid = False
+
+
+# Post-save signal to handle quantity decrease
+@receiver(post_save, sender=Order)
+def update_product_quantity(sender, instance, created, **kwargs):
+    if instance.is_paid and not instance._previous_is_paid:
+        try:
+            product = instance.product
+            if product.quantity >= instance.quantity:
+                product.quantity -= instance.quantity
+                product.save()
+            else:
+                raise ValueError("Not enough product quantity available to fulfill the order.")
+        except Exception as e:
+            print(f"Error updating product quantity: {str(e)}")

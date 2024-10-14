@@ -7,7 +7,6 @@ from django.utils.html import format_html
 from unfold.contrib.import_export.forms import SelectableFieldsExportForm, ImportForm
 from .models import Order, Product, Category, Subcategory, Brand, ProductModel, Stock
 from django.utils.translation import gettext_lazy as _
-from django.core.exceptions import ValidationError
 
 
 # Define a resource for the Order model
