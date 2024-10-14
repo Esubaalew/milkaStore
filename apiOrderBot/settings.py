@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     "shop.apps.ShopConfig",
     "rest_framework",
     'corsheaders',
-    "Purchase.apps.PurchaseConfig"
 ]
 
 MIDDLEWARE = [
@@ -113,7 +112,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Africa/Addis_Ababa'
+
 
 USE_I18N = True
 

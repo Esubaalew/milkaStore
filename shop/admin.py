@@ -5,8 +5,9 @@ from import_export.admin import ImportExportModelAdmin
 from import_export import resources
 from django.utils.html import format_html
 from unfold.contrib.import_export.forms import SelectableFieldsExportForm, ImportForm
-from .models import Order, Product
+from .models import Order, Product, Category, Subcategory, Brand, ProductModel, Stock
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 
 
 # Define a resource for the Order model
@@ -30,9 +31,9 @@ class DateRangeExportForm(SelectableFieldsExportForm):
         return cleaned_data
 
 class OrderAdmin(ImportExportModelAdmin, ModelAdmin):
-    resource_class = OrderResource  # Specify the resource class for import/export
-    import_form_class = ImportForm  # Use the form provided by Unfold for import
-    export_form_class = DateRangeExportForm  # Use the custom date range export form
+    resource_class = OrderResource
+    import_form_class = ImportForm
+    export_form_class = DateRangeExportForm
 
     model = Order
     list_display = (
@@ -50,7 +51,7 @@ class OrderAdmin(ImportExportModelAdmin, ModelAdmin):
         'address',
         'phone_number',
         'quantity',
-        'order_date'  # Keep standard order date filter, no range picker here
+        'order_date'
     )
     search_fields = (
         'product__name',
@@ -82,12 +83,12 @@ class OrderAdmin(ImportExportModelAdmin, ModelAdmin):
 
         return queryset
 
-class ProductAdmin(ModelAdmin):  # Inherit from Unfold Admin's ModelAdmin
+class ProductAdmin(ModelAdmin):
     model = Product
     list_display = (
         'name',
         'short_description',
-        'image_preview',  # Update to use image_preview method
+        'image_preview',
         'price',
         'date_added'
     )
@@ -105,11 +106,56 @@ class ProductAdmin(ModelAdmin):  # Inherit from Unfold Admin's ModelAdmin
         return "No image"
     image_preview.short_description = 'Image Preview'
 
-# Registering the models
+class CategoryAdmin(ModelAdmin):
+    model = Category
+    list_display = ('name', )
+    list_filter = ('name', )
+    search_fields = ('name', )
+
+class SubcategoryAdmin(ModelAdmin):
+    model = Subcategory
+    list_display = ('name', 'category', )
+    list_filter = ('name', 'category', )
+    search_fields = ('name', 'category',)
+
+class BrandAdmin(ModelAdmin):
+    model = Brand
+    list_display = ('name', 'subcategory', )
+    list_filter = ('name', 'subcategory', )
+    search_fields = ('name', 'subcategory',)
+
+class ProductModelAdmin(ModelAdmin):
+    model = ProductModel
+    list_display = ('name', 'brand', 'subcategory', )
+    list_filter = ('name', 'brand', 'subcategory', )
+    search_fields = ('name', 'brand', 'subcategory',)
+
+class StockAdmin(ModelAdmin):
+    model = Stock
+    list_display = ('product', 'quantity_in_stock', 'restock_date', 'added_by')  # Display the fields we have
+    list_filter = ('product', 'quantity_in_stock', 'restock_date', 'added_by')  # Filterable fields
+    search_fields = ('product__name', 'quantity_in_stock', 'restock_date')  # Searchable fields
+
+
+    def save_model(self, request, obj, form, change):
+        if not obj.added_by:
+            obj.added_by = request.user
+
+        obj.clean()
+
+        super().save_model(request, obj, form, change)
+
+
 admin.site.register(Order, OrderAdmin)
 admin.site.register(Product, ProductAdmin)
+admin.site.register(Category, CategoryAdmin)
+admin.site.register(Subcategory, SubcategoryAdmin)
+admin.site.register(Brand, BrandAdmin)
+admin.site.register(ProductModel, ProductModelAdmin)
+admin.site.register(Stock, StockAdmin)
 
-# Change the title and header of the admin site
+
+
 admin.site.site_header = "Store Administration"
 admin.site.site_title = "Shop Admin Portal"
 admin.site.index_title = "Welcome to the Shop Admin Dashboard"

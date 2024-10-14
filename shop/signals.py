@@ -1,48 +1,91 @@
 import requests
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import Product
+from .models import Stock
 from django.conf import settings
+from io import BytesIO
+import mimetypes
+import json  # Import json for dumping reply_markup to a JSON string
 
 # Your bot token and channel ID
-BOT_TOKEN = '7543719732:AAH8cIPr_xv9oaxtzw21EmnDd0LhJXVfCPs'
-CHANNEL_ID = '-1002437698028'
+BOT_TOKEN = 'TOKEN'
+CHANNEL_ID = '-CHANNEL_ID'
 
 
-@receiver(post_save, sender=Product)
-def send_product_to_channel(sender, instance, created, **kwargs):
+@receiver(post_save, sender=Stock)
+def send_stock_to_channel(sender, instance, created, **kwargs):
+    print("Signal triggered!")
+
     URL = settings.SITE_URL
-    if created:
-        # Image URL
-        image_url = URL + instance.image.url
 
-        caption = (
-            f"<b>{instance.name}</b>\n\n"
-            f"<i>{instance.description}</i>\n\n"
-            f"<b>Price:</b> {instance.price}\n"
-        )
+    product = instance.product
+    image_url = URL + product.image.url if product.image else None
+    print(f"Image URL: {image_url}")  # Debugging image URL
 
-        direct_link = f"https://t.me/StoreNowBot/mystore?startapp=product-{instance.id}"
+    caption = (
+        f"<b>New Stock Added for {product.name}</b>\n\n"
+        f"<b>Brand:</b> {product.brand.name}\n"
+        f"<b>Model:</b> {product.model.name}\n"
+        f"<b>Category:</b> {product.category.name}\n"
+        f"<b>Quantity Available:</b> {instance.quantity_in_stock}\n"
+        f"<b>Price:</b> {product.price}\n\n"
+        f"<i>{product.description}</i>\n"
+    )
 
-        url = f'https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto'
+    direct_link = f"https://t.me/StoreNowBot/mystore?startapp=product-{product.id}"
 
-        data = {
-            'chat_id': CHANNEL_ID,
-            'photo': image_url,
-            'caption': caption,
-            'parse_mode': 'HTML',
-            'reply_markup': {
-                'inline_keyboard': [
-                    [
-                        {
-                            'text': 'Order Now',
-                            'url': direct_link
-                        }
-                    ]
+    data = {
+        'chat_id': CHANNEL_ID,
+        'caption': caption,
+        'parse_mode': 'HTML',
+        'reply_markup': json.dumps({  # Convert reply_markup to JSON
+            'inline_keyboard': [
+                [
+                    {
+                        'text': 'Order Now',
+                        'url': direct_link
+                    }
                 ]
-            }
-        }
+            ]
+        })
+    }
 
-        response = requests.post(url, json=data)
+    try:
+        if image_url:
+            # Download the image from the URL
+            image_response = requests.get(image_url)
+            if image_response.status_code == 200:
+                # Detect the file extension and MIME type
+                image_extension = product.image.url.split('.')[-1]  # Get file extension from the URL
+                mime_type, _ = mimetypes.guess_type(image_url)
 
-        print(response.json())
+                # Fallback to response header if mimetypes module doesn't detect the type
+                if not mime_type:
+                    mime_type = image_response.headers.get('Content-Type', 'application/octet-stream')
+
+                # Load the image into memory
+                image_data = BytesIO(image_response.content)
+
+                # Send the image as a file to Telegram
+                files = {
+                    'photo': (f'image.{image_extension}', image_data, mime_type)
+                }
+                url = f'https://api.telegram.org/bot{BOT_TOKEN}/sendPhoto'
+                response = requests.post(url, data=data, files=files)
+            else:
+                print(f"Failed to download image: {image_response.status_code}")
+                return
+        else:
+            # Send as a text message if no image is available
+            url = f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage'
+            data['text'] = caption
+            response = requests.post(url, json=data)
+
+        print(f"Response status: {response.status_code}")
+        print(f"Response content: {response.text}")
+
+        if response.status_code != 200:
+            print(f"Failed to send message to Telegram: {response.text}")
+
+    except requests.exceptions.RequestException as e:
+        print(f"Request failed: {e}")
