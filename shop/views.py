@@ -30,7 +30,7 @@ def webapp_view(request):
     start_param = request.GET.get('tgWebAppStartParam', '')
     logger.info(f"Start Parameter: {start_param}")
 
-    # Check if start_param is valid and starts with 'product-'
+    # Validate the start_param to ensure it contains a valid product ID
     if start_param.startswith('product-'):
         try:
             product_id = start_param.split('-')[1]
@@ -38,6 +38,14 @@ def webapp_view(request):
 
             product = get_object_or_404(Product, id=product_id)
             logger.info(f"Product found: {product.name} (ID: {product.id})")
+
+            # Ensure the product has stock available
+            if product.quantity < 1:
+                logger.error(f"Product ID {product_id} is out of stock.")
+                return render(request, 'webapp.html', {
+                    'product': product,
+                    'error': 'This product is currently out of stock.',
+                })
 
         except (IndexError, ValueError):
             logger.error("Error extracting product ID from start_param")
@@ -72,14 +80,18 @@ def webapp_view(request):
         )
 
         try:
-            order.clean()  # Call clean to validate before saving
+            # Validate the order before saving
+            order.full_clean()  # Calls the clean() method for validation
             order.save()  # Save if clean passes
+            logger.info(f"Order created successfully for {product.name}, Quantity: {quantity}")
             return redirect('payment_choice', order_id=order.id)
         except ValidationError as e:
-            logger.error(f"Validation error: {e}")
+            # Capture and extract a friendly error message
+            error_message = e.message_dict.get('__all__', ['An error occurred'])[0]
+            logger.error(f"Validation error: {error_message}")
             return render(request, 'webapp.html', {
                 'product': product,
-                'error': str(e),
+                'error': error_message,  # Pass the friendly message to the template
             })
 
     logger.info(f"Rendering product page for product: {product.name}")
