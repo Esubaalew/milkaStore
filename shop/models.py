@@ -158,6 +158,9 @@ class Stock(models.Model):
 
     def clean(self):
         # Ensure both values are present before performing the comparison
+        if self.quantity_in_stock <= 0:
+            raise ValidationError("Stock quantity cannot be zero or negative.")
+
         if self.product.quantity is None:
             raise ValidationError(f"The product '{self.product.name}' does not have a set quantity.")
 

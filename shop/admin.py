@@ -29,6 +29,8 @@ class DateRangeExportForm(SelectableFieldsExportForm):
 
         return cleaned_data
 
+
+
 class OrderAdmin(ImportExportModelAdmin, ModelAdmin):
     resource_class = OrderResource
     import_form_class = ImportForm
@@ -150,6 +152,15 @@ class StockAdmin(ModelAdmin):
     list_filter = ('product', 'quantity_in_stock', 'restock_date', 'added_by')  # Filterable fields
     search_fields = ('product__name', 'quantity_in_stock', 'restock_date')  # Searchable fields
 
+    actions = ['restock_items']
+
+    def restock_items(self, request, queryset):
+        for stock in queryset:
+            stock.quantity_in_stock += 10
+            stock.save()
+
+    restock_items.short_description = "Restock selected items"
+
 
     def save_model(self, request, obj, form, change):
         if not obj.added_by:
@@ -167,7 +178,6 @@ admin.site.register(Subcategory, SubcategoryAdmin)
 admin.site.register(Brand, BrandAdmin)
 admin.site.register(ProductModel, ProductModelAdmin)
 admin.site.register(Stock, StockAdmin)
-
 
 
 admin.site.site_header = "Store Administration"

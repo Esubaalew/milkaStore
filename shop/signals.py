@@ -101,9 +101,10 @@ def check_order_is_paid(sender, instance, **kwargs):
         instance._previous_is_paid = False
 
 
-# Post-save signal to handle quantity decrease
+# Post-save signal to handle product and stock quantity updates
 @receiver(post_save, sender=Order)
-def update_product_quantity(sender, instance, created, **kwargs):
+def update_quantities(sender, instance, created, **kwargs):
+    # Update product quantity
     if instance.is_paid and not instance._previous_is_paid:
         try:
             product = instance.product
@@ -112,5 +113,17 @@ def update_product_quantity(sender, instance, created, **kwargs):
                 product.save()
             else:
                 raise ValueError("Not enough product quantity available to fulfill the order.")
+
+            # Update stock quantity
+            try:
+                stock_item = Stock.objects.get(product=product)
+                if stock_item.quantity_in_stock >= instance.quantity:
+                    stock_item.quantity_in_stock -= instance.quantity
+                    stock_item.save()
+                else:
+                    raise ValueError("Not enough stock available to fulfill the order.")
+            except Stock.DoesNotExist:
+                print(f"Stock item not found for product {product.name}.")
+
         except Exception as e:
-            print(f"Error updating product quantity: {str(e)}")
+            print(f"Error updating quantities: {str(e)}")
