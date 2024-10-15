@@ -5,7 +5,7 @@ from .models import Stock, Order
 from django.conf import settings
 from io import BytesIO
 import mimetypes
-import json  # Import json for dumping reply_markup to a JSON string
+import json
 
 
 # Your bot token and channel ID
