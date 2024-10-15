@@ -90,6 +90,8 @@ class Product(models.Model):
 
     class Meta:
         ordering = ['-date_added']
+        verbose_name = "Purchase"
+        verbose_name_plural = "Purchases"
 
     def __str__(self):
         return self.name
@@ -130,6 +132,8 @@ class Order(models.Model):
 
     class Meta:
         ordering = ['-order_date']
+        verbose_name = "Sale"
+        verbose_name_plural = "Sales"
 
     def save(self, *args, **kwargs):
 
@@ -151,11 +155,11 @@ class Stock(models.Model):
         return f"Stock for {self.product.name} - {self.quantity_in_stock} units"
 
     class Meta:
-        verbose_name = "Stock"
-        verbose_name_plural = "Stocks"
+        verbose_name = "Store"
+        verbose_name_plural = "Stores"
 
     def clean(self):
-        # Ensure both values are present before performing the comparison
+
         if self.quantity_in_stock <= 0:
             raise ValidationError("Stock quantity cannot be zero or negative.")
 
