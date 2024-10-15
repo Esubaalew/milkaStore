@@ -34,6 +34,8 @@ class OrderAdmin(ImportExportModelAdmin, ModelAdmin):
     import_form_class = ImportForm
     export_form_class = DateRangeExportForm
 
+    actions = ['mark_as_paid', 'mark_as_unpaid']
+
     model = Order
     list_display = (
         'product_name',
@@ -42,7 +44,8 @@ class OrderAdmin(ImportExportModelAdmin, ModelAdmin):
         'phone_number',
         'comment',
         'quantity',
-        'order_date'
+        'order_date',
+        'is_paid',
     )
     list_filter = (
         'product',
@@ -50,7 +53,8 @@ class OrderAdmin(ImportExportModelAdmin, ModelAdmin):
         'address',
         'phone_number',
         'quantity',
-        'order_date'
+        'order_date',
+        'is_paid',
     )
     search_fields = (
         'product__name',
@@ -64,6 +68,17 @@ class OrderAdmin(ImportExportModelAdmin, ModelAdmin):
     def product_name(self, obj):
         return obj.product.name
     product_name.short_description = 'Product'
+
+    def mark_as_paid(self, request, queryset):
+        queryset.update(is_paid=True)
+
+    mark_as_paid.short_description = "Mark selected orders as paid"
+
+    def mark_as_unpaid(self, request, queryset):
+        queryset.update(is_paid=False)
+
+    mark_as_unpaid.short_description = "Mark selected orders as unpaid"
+
 
     def get_export_queryset(self, request):
         """
