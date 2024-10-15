@@ -131,7 +131,12 @@ class Order(models.Model):
     class Meta:
         ordering = ['-order_date']
 
+    def clean(self):
 
+        if self.quantity > self.product.quantity:
+            raise ValidationError(
+                f'Not enough stock available for {self.product.name}. Available quantity: {self.product.quantity}.'
+            )
 
     def save(self, *args, **kwargs):
 
@@ -173,7 +178,6 @@ class Stock(models.Model):
             )
 
     def save(self, *args, **kwargs):
-        # Default the stock quantity to the product's available quantity if not provided
         if self.quantity_in_stock is None:
             self.quantity_in_stock = self.product.quantity
 

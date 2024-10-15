@@ -80,7 +80,7 @@
         </div>
     </div>
     
-      <!-- Error Message from the Server -->
+    <!-- Error Message from the Server -->
     {% if error %}
         <script>
             document.addEventListener('DOMContentLoaded', function() {
@@ -101,15 +101,15 @@
         const phoneInput = document.getElementById('phoneNumber');
         const quantityInput = document.getElementById('quantity');
         const submitButton = document.querySelector('button[type="submit"]');
-        const formFields = [phoneInput, quantityInput];
         const errorAlert = document.getElementById('errorAlert');
         const errorMessage = document.getElementById('errorMessage');
+        let availableStock = 0;  // Variable to hold available stock quantity
 
         // Function to check input validity and toggle submit button
         function validateForm() {
             const phonePattern = /^[0-9]{10}$/;
             const isPhoneValid = phonePattern.test(phoneInput.value);
-            const isQuantityValid = quantityInput.value > 0;
+            const isQuantityValid = quantityInput.value > 0 && quantityInput.value <= availableStock;  // Check against available stock
 
             // Toggle button based on validity
             if (isPhoneValid && isQuantityValid) {
@@ -121,15 +121,14 @@
                 if (!isPhoneValid) {
                     errorMessage.textContent = "Invalid phone number. Please enter a valid 10-digit phone number.";
                 } else if (!isQuantityValid) {
-                    errorMessage.textContent = "Quantity must be greater than 0.";
+                    errorMessage.textContent = `Quantity must be greater than 0 and less than or equal to ${availableStock}.`;
                 }
             }
         }
 
         // Attach input event listener to form fields for real-time validation
-        formFields.forEach(field => {
-            field.addEventListener('input', validateForm);
-        });
+        phoneInput.addEventListener('input', validateForm);
+        quantityInput.addEventListener('input', validateForm);
 
         // Add loading state when form is submitted
         document.getElementById('orderForm').addEventListener('submit', function(event) {
@@ -166,7 +165,9 @@
                         <h1 class="mb-3">${data.name}</h1>
                         <p class="text-muted">${data.description}</p>
                         <h3><strong>Price:</strong> ${data.price} Birr</h3>
+                        <h5><strong>Available Stock:</strong> <span id="availableStock">${data.quantity}</span></h5>
                     `;
+                    availableStock = data.quantity;  // Set available stock from product data
                 })
                 .catch(error => {
                     console.error('Error fetching product:', error);

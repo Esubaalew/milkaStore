@@ -7,6 +7,7 @@ from django.utils.html import format_html
 from unfold.contrib.import_export.forms import SelectableFieldsExportForm, ImportForm
 from .models import Order, Product, Category, Subcategory, Brand, ProductModel, Stock
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 
 
 # Define a resource for the Order model
@@ -98,6 +99,16 @@ class OrderAdmin(ImportExportModelAdmin, ModelAdmin):
                 queryset = queryset.filter(order_date__lte=end_date)
 
         return queryset
+
+    def save_model(self, request, obj, form, change):
+        try:
+            # Call the original save method
+            super().save_model(request, obj, form, change)
+        except ValidationError as e:
+            # If a ValidationError is raised, add it to the form errors
+            form.add_error(None, e)
+            # Re-raise the error to prevent saving
+            raise
 
 class ProductAdmin(ModelAdmin):
     model = Product

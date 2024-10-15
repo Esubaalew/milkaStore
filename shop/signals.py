@@ -5,6 +5,7 @@ from .models import Stock, Order
 from django.conf import settings
 from io import BytesIO
 import mimetypes
+from django.core.exceptions import ValidationError
 import json
 
 
