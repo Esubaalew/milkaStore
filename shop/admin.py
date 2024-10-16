@@ -1,42 +1,12 @@
-from django import forms
 from django.contrib import admin
 from unfold.admin import ModelAdmin
-from import_export.admin import ImportExportModelAdmin
-from import_export import resources
 from django.utils.html import format_html
-from unfold.contrib.import_export.forms import SelectableFieldsExportForm, ImportForm
 from .models import Order, Product, Category, Subcategory, Brand, ProductModel, Stock
-from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
+from django.http import HttpResponse
+import csv
 
-
-# Define a resource for the Order model
-class OrderResource(resources.ModelResource):
-    class Meta:
-        model = Order
-
-# Define a custom form for date range selection during export
-class DateRangeExportForm(SelectableFieldsExportForm):
-    start_date = forms.DateField(required=False, label=_("Start date"), widget=forms.DateInput(attrs={'type': 'date'}))
-    end_date = forms.DateField(required=False, label=_("End date"), widget=forms.DateInput(attrs={'type': 'date'}))
-
-    def clean(self):
-        cleaned_data = super().clean()
-        start_date = cleaned_data.get("start_date")
-        end_date = cleaned_data.get("end_date")
-
-        if start_date and end_date and start_date > end_date:
-            raise forms.ValidationError(_("Start date cannot be later than end date."))
-
-        return cleaned_data
-
-
-
-class OrderAdmin(ImportExportModelAdmin, ModelAdmin):
-    resource_class = OrderResource
-    import_form_class = ImportForm
-    export_form_class = DateRangeExportForm
-
+class OrderAdmin(ModelAdmin):
     model = Order
     list_display = (
         'product_name',
@@ -70,31 +40,38 @@ class OrderAdmin(ImportExportModelAdmin, ModelAdmin):
         return obj.product.name
     product_name.short_description = 'Product'
 
-    def get_export_queryset(self, request):
-        """
-        Filter the queryset based on the date range provided in the export form.
-        """
-        queryset = super().get_export_queryset(request)
-        form = self.export_form(request.POST or None)
-        if form.is_valid():
-            start_date = form.cleaned_data.get('start_date')
-            end_date = form.cleaned_data.get('end_date')
+    def export_as_csv(self, request, queryset):
+        # Create the response object for CSV
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="orders.csv"'
 
-            if start_date:
-                queryset = queryset.filter(order_date__gte=start_date)
-            if end_date:
-                queryset = queryset.filter(order_date__lte=end_date)
+        writer = csv.writer(response)
+        writer.writerow(['Product', 'Full Name', 'Address', 'Phone Number', 'Comment', 'Quantity', 'Order Date', 'Is Paid'])  # CSV Header
 
-        return queryset
+        for order in queryset:
+            writer.writerow([
+                order.product.name,
+                order.full_name,
+                order.address,
+                order.phone_number,
+                order.comment,
+                order.quantity,
+                order.order_date,
+                order.is_paid,
+            ])  # CSV Data
+
+        return response
+
+    export_as_csv.short_description = "Export Selected Orders as CSV"
+
+    # Adding the action to the admin
+    actions = ['export_as_csv']
 
     def save_model(self, request, obj, form, change):
         try:
-            # Call the original save method
             super().save_model(request, obj, form, change)
         except ValidationError as e:
-            # If a ValidationError is raised, add it to the form errors
             form.add_error(None, e)
-            # Re-raise the error to prevent saving
             raise
 
 class ProductAdmin(ModelAdmin):
@@ -120,6 +97,24 @@ class ProductAdmin(ModelAdmin):
             return format_html('<img src="{}" style="width: 50px; height: auto;" />', obj.image.url)
         return "No image"
     image_preview.short_description = 'Image Preview'
+
+    def export_as_csv(self, request, queryset):
+        # Create the response object for CSV
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="products.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(['Name', 'Description', 'Quantity', 'Price', 'Date Added'])  # CSV Header
+
+        for product in queryset:
+            writer.writerow([product.name, product.description, product.quantity, product.price, product.date_added])  # CSV Data
+
+        return response
+
+    export_as_csv.short_description = "Export Selected as CSV"
+
+    # Adding the action to the admin
+    actions = ['export_as_csv']
 
 class CategoryAdmin(ModelAdmin):
     model = Category
@@ -160,15 +155,12 @@ class StockAdmin(ModelAdmin):
 
     restock_items.short_description = "Restock selected items"
 
-
     def save_model(self, request, obj, form, change):
         if not obj.added_by:
             obj.added_by = request.user
 
         obj.clean()
-
         super().save_model(request, obj, form, change)
-
 
 admin.site.register(Order, OrderAdmin)
 admin.site.register(Product, ProductAdmin)
@@ -177,7 +169,6 @@ admin.site.register(Subcategory, SubcategoryAdmin)
 admin.site.register(Brand, BrandAdmin)
 admin.site.register(ProductModel, ProductModelAdmin)
 admin.site.register(Stock, StockAdmin)
-
 
 admin.site.site_header = "Store Administration"
 admin.site.site_title = "Shop Admin Portal"
