@@ -111,6 +111,7 @@ class Order(models.Model):
         ('enat', 'Enat Bank'),
         ('dashen', 'Dashen Bank'),
         ('telebirr', 'Telebirr'),
+        ('cash', 'Cash'),
     ]
     ORDER_TYPES = [
         ('manual', 'manual'),

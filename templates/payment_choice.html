@@ -65,6 +65,10 @@
                                 <label class="form-check-label" for="dashen">Dashen Bank</label>
                             </div>
                             <div class="form-check">
+                                <input class="form-check-input" type="radio" id="cash" name="payment_method" value="cash" required>
+                                <label class="form-check-label" for="cash">Cash</label> <!-- New cash option -->
+                            </div>
+                            <div class="form-check">
                                 <input class="form-check-input" type="radio" id="chapa" name="payment_method" value="chapa" disabled>
                                 <label class="form-check-label" for="chapa">Chapa (Coming Soon)</label>
                             </div>
@@ -76,7 +80,7 @@
                         
                         <div class="instructions" id="instructions"></div>
                         
-                        <div class="mb-3">
+                        <div class="mb-3" id="paymentRefContainer">
                             <label for="paymentRef" class="form-label">Payment Reference</label>
                             <input type="text" class="form-control" id="paymentRef" name="payment_ref" required>
                         </div>
@@ -95,12 +99,15 @@
 
         const submitButton = document.querySelector('button[type="submit"]');
         const instructionsDiv = document.getElementById('instructions');
+        const paymentRefContainer = document.getElementById('paymentRefContainer');
+        const paymentRefInput = document.getElementById('paymentRef');
         const instructions = {
             cbe: `Transfer the total price of {{ order.total_price }} birr to the Commercial Bank of Ethiopia. Use account number: {{ random_account_number }}.`,
             boa: `Transfer the total price of {{ order.total_price }} birr to the Bank of Abyssinia. Use account number: {{ random_account_number }}.`,
             awash: `Transfer the total price of {{ order.total_price }} birr to Awash Bank. Use account number: {{ random_account_number }}.`,
             enat: `Transfer the total price of {{ order.total_price }} birr to Enat Bank. Use account number: {{ random_account_number }}.`,
             dashen: `Transfer the total price of {{ order.total_price }} birr to Dashen Bank. Use account number: {{ random_account_number }}.`,
+            cash: `Please pay the total amount of {{ order.total_price }} birr in cash upon delivery.`, // Cash payment instructions
             chapa: `Chapa payment is coming soon. Please choose another payment method.`,
             telebirr: `Telebirr payment is coming soon. Please choose another payment method.`
         };
@@ -110,6 +117,15 @@
             if (selectedMethod) {
                 const methodValue = selectedMethod.value;
                 instructionsDiv.innerHTML = instructions[methodValue];
+
+                // If 'cash' is selected, hide/disable the payment reference input
+                if (methodValue === 'cash') {
+                    paymentRefContainer.style.display = 'none';
+                    paymentRefInput.removeAttribute('required');
+                } else {
+                    paymentRefContainer.style.display = 'block';
+                    paymentRefInput.setAttribute('required', 'required');
+                }
             } else {
                 instructionsDiv.innerHTML = '';
             }
