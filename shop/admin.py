@@ -5,6 +5,8 @@ from .models import Order, Product, Category, Subcategory, Brand, ProductModel, 
 from django.core.exceptions import ValidationError
 from django.http import HttpResponse
 import csv
+from openpyxl import Workbook
+
 
 class OrderAdmin(ModelAdmin):
     model = Order
@@ -62,10 +64,41 @@ class OrderAdmin(ModelAdmin):
 
         return response
 
-    export_as_csv.short_description = "Export Selected Orders as CSV"
+    def export_as_excel(self, request, queryset):
+        # Create the response object for Excel
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="orders.xlsx"'
 
-    # Adding the action to the admin
-    actions = ['export_as_csv']
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = 'Orders'
+
+        # Write headers
+        headers = ['Product', 'Full Name', 'Address', 'Phone Number', 'Comment', 'Quantity', 'Order Date', 'Is Paid']
+        worksheet.append(headers)
+
+        # Write data
+        for order in queryset:
+            order_date_naive = order.order_date.replace(tzinfo=None)  # Make datetime naive
+            worksheet.append([
+                order.product.name,
+                order.full_name,
+                order.address,
+                order.phone_number,
+                order.comment,
+                order.quantity,
+                order_date_naive,  # Use the naive datetime
+                order.is_paid,
+            ])
+
+        workbook.save(response)
+        return response
+
+    export_as_csv.short_description = "Export Selected Orders as CSV"
+    export_as_excel.short_description = "Export Selected Orders as Excel"
+
+    # Adding the actions to the admin
+    actions = [export_as_csv, export_as_excel]
 
     def save_model(self, request, obj, form, change):
         try:
@@ -111,10 +144,32 @@ class ProductAdmin(ModelAdmin):
 
         return response
 
-    export_as_csv.short_description = "Export Selected as CSV"
+    def export_as_excel(self, request, queryset):
+        # Create the response object for Excel
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="products.xlsx"'
 
-    # Adding the action to the admin
-    actions = ['export_as_csv']
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = 'Products'
+
+        # Write headers
+        headers = ['Name', 'Description', 'Quantity', 'Price', 'Date Added']
+        worksheet.append(headers)
+
+        # Write data
+        for product in queryset:
+            date_added_naive = product.date_added.replace(tzinfo=None)  # Make datetime naive
+            worksheet.append([product.name, product.description, product.quantity, product.price, date_added_naive])  # Use the naive datetime
+
+        workbook.save(response)
+        return response
+
+    export_as_csv.short_description = "Export Selected Products as CSV"
+    export_as_excel.short_description = "Export Selected Products as Excel"
+
+    # Adding the actions to the admin
+    actions = [export_as_csv, export_as_excel]
 
 class CategoryAdmin(ModelAdmin):
     model = Category
