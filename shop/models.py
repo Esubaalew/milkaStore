@@ -21,10 +21,12 @@ class Subcategory(models.Model):
     def __str__(self):
         return f"{self.category.name} - {self.name}" if self.category else self.name
 
-    def save(self, *args, **kwargs):
-
+    def clean(self):
         if not self.category:
-            raise ValueError("Category must be specified for the subcategory.")
+            raise ValidationError("Category must be specified for the subcategory.")
+
+    def save(self, *args, **kwargs):
+        self.clean()  # Ensure validation is called on save
         super(Subcategory, self).save(*args, **kwargs)
 
 
@@ -38,16 +40,17 @@ class Brand(models.Model):
     def __str__(self):
         return f"{self.subcategory.name} - {self.name}" if self.subcategory else self.name
 
-    def save(self, *args, **kwargs):
-        # Ensure that the subcategory is not missing
+    def clean(self):
         if not self.subcategory:
-            raise ValueError("Subcategory must be specified for the brand.")
+            raise ValidationError("Subcategory must be specified for the brand.")
+
+    def save(self, *args, **kwargs):
+        self.clean()  # Ensure validation is called on save
         super(Brand, self).save(*args, **kwargs)
 
 
-
 # ProductModel (renamed from Model) under a brand
-class ProductModel(models.Model):  # Renamed class to avoid conflict with Django's `Model` class
+class ProductModel(models.Model):
     name = models.CharField(max_length=255)
     brand = models.ForeignKey(
         'Brand', related_name='models', on_delete=models.CASCADE, null=True, blank=True
@@ -59,14 +62,16 @@ class ProductModel(models.Model):  # Renamed class to avoid conflict with Django
     def __str__(self):
         return f"{self.brand.name} - {self.name}" if self.brand else self.name
 
-    def save(self, *args, **kwargs):
-        # Ensure that the brand and subcategory are not missing
+    def clean(self):
         if not self.brand or not self.subcategory:
-            raise ValueError("Both Brand and Subcategory must be specified for the product model.")
+            raise ValidationError("Both Brand and Subcategory must be specified for the product model.")
+
+    def save(self, *args, **kwargs):
+        self.clean()  # Ensure validation is called on save
         super(ProductModel, self).save(*args, **kwargs)
 
 
-
+# Product model
 class Product(models.Model):
     name = models.CharField(max_length=255)
     category = models.ForeignKey(
@@ -96,10 +101,12 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
-    def save(self, *args, **kwargs):
-        # Ensure that required foreign keys are not missing
+    def clean(self):
         if not self.category or not self.subcategory or not self.brand or not self.model:
-            raise ValueError("Category, Subcategory, Brand, and Model must be specified.")
+            raise ValidationError("Category, Subcategory, Brand, and Model must be specified.")
+
+    def save(self, *args, **kwargs):
+        self.clean()  # Ensure validation is called on save
         super(Product, self).save(*args, **kwargs)
 
 class Order(models.Model):
