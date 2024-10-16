@@ -142,9 +142,27 @@ class Order(models.Model):
         ordering = ['-order_date']
         verbose_name = "Sale"
         verbose_name_plural = "Sales"
+    def clean(self):
+        if self.quantity <= 0:
+            raise ValidationError("Quantity cannot be zero or negative.")
+
+        if self.product.quantity is None:
+            raise ValidationError(f"The product '{self.product.name}' does not have a set quantity.")
+
+        # Check if the product has stock
+        try:
+            stock = Stock.objects.get(product=self.product)
+        except Stock.DoesNotExist:
+            raise ValidationError(f"Stock entry for product '{self.product.name}' does not exist. Make sure you add stock(Store) first.")
+
+
+        if self.quantity > stock.quantity_in_stock:
+                raise ValidationError(
+                    f"You cannot order more than the available stock of {stock.quantity_in_stock} units."
+                )
 
     def save(self, *args, **kwargs):
-
+        self.clean()
         self.total_price = self.product.price * self.quantity
         super(Order, self).save(*args, **kwargs)
 

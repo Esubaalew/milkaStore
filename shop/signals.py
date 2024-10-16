@@ -93,38 +93,27 @@ def send_stock_to_channel(sender, instance, created, **kwargs):
         print(f"Request failed: {e}")
 
 
-@receiver(pre_save, sender=Order)
-def check_order_is_paid(sender, instance, **kwargs):
-    if instance.pk:
-        previous_order = Order.objects.get(pk=instance.pk)
-        instance._previous_is_paid = previous_order.is_paid
-    else:
-        instance._previous_is_paid = False
-
-
-# Post-save signal to handle product and stock quantity updates
 @receiver(post_save, sender=Order)
-def update_quantities(sender, instance, created, **kwargs):
-    # Update product quantity
-    if instance.is_paid and not instance._previous_is_paid:
+def reduce_stock_on_payment(sender, instance, **kwargs):
+    """
+    Signal to reduce stock when an order is marked as paid.
+    This will reduce the stock quantity based on the order quantity.
+    """
+
+    if instance.is_paid:
         try:
-            product = instance.product
-            if product.quantity >= instance.quantity:
-                product.quantity -= instance.quantity
-                product.save()
+
+            stock = Stock.objects.get(product=instance.product)
+
+
+            if stock.quantity_in_stock >= instance.quantity:
+
+                stock.quantity_in_stock -= instance.quantity
+                stock.save()
             else:
-                raise ValueError("Not enough product quantity available to fulfill the order.")
 
-            # Update stock quantity
-            try:
-                stock_item = Stock.objects.get(product=product)
-                if stock_item.quantity_in_stock >= instance.quantity:
-                    stock_item.quantity_in_stock -= instance.quantity
-                    stock_item.save()
-                else:
-                    raise ValueError("Not enough stock available to fulfill the order.")
-            except Stock.DoesNotExist:
-                print(f"Stock item not found for product {product.name}.")
+                raise ValidationError("Not enough stock available.")
+        except Stock.DoesNotExist:
 
-        except Exception as e:
-            print(f"Error updating quantities: {str(e)}")
+            raise ValidationError(f"Stock entry for product '{instance.product}' does not exist.")
+
