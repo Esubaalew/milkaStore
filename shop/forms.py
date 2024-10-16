@@ -11,7 +11,7 @@ class OrderForm(forms.ModelForm):
 class ReceiptUploadForm(forms.ModelForm):
     class Meta:
         model = Order
-        fields = ['payment_method', 'receipt_file']
+        fields = ['payment_method', 'payment_ref']
         widgets = {
             'payment_method': forms.RadioSelect(choices=Order.PAYMENT_METHODS),
         }

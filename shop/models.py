@@ -127,7 +127,7 @@ class Order(models.Model):
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)  # New field for total price
     order_date = models.DateTimeField(auto_now_add=True)
     payment_method = models.CharField(max_length=10, choices=PAYMENT_METHODS, default='cbe')
-    receipt_file = models.FileField(upload_to='receipts/', blank=True, null=True)
+    payment_ref = models.CharField(max_length=100, blank=True, null=True, help_text="Enter the payment reference code")
     is_paid = models.BooleanField(default=False)
 
     class Meta:

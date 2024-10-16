@@ -38,9 +38,9 @@
                     
                     <!-- Display the quantity and the total price -->
                     <p>Quantity: {{ order.quantity }}</p>
-                    <p>Total Price: {{ order.total_price }} Birr</p> <!-- Display the total price -->
+                    <p>Total Price: {{ order.total_price }} Birr</p>
                     
-                    <form id="paymentForm" method="POST" enctype="multipart/form-data">
+                    <form id="paymentForm" method="POST">
                         {% csrf_token %}
                         <div class="mb-3">
                             <label class="form-label">Payment Method</label>
@@ -74,35 +74,31 @@
                             </div>
                         </div>
                         
-                        <div class="instructions" id="instructions">
-                            <!-- Instructions will be dynamically updated here -->
-                        </div>
+                        <div class="instructions" id="instructions"></div>
                         
                         <div class="mb-3">
-                            <label for="receiptFile" class="form-label">Upload Bank Receipt</label>
-                            <input type="file" class="form-control" id="receiptFile" name="receipt_file" accept=".jpg,.jpeg,.png,.pdf" required>
+                            <label for="paymentRef" class="form-label">Payment Reference</label>
+                            <input type="text" class="form-control" id="paymentRef" name="payment_ref" required>
                         </div>
                         
-                        <button type="submit" class="btn btn-primary w-100" disabled>Submit Payment</button>
+                        <button type="submit" class="btn btn-primary w-100">Submit Payment</button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Telegram WebApp JavaScript -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        const receiptInput = document.getElementById('receiptFile');
         const submitButton = document.querySelector('button[type="submit"]');
         const instructionsDiv = document.getElementById('instructions');
         const instructions = {
             cbe: `Transfer the total price of {{ order.total_price }} birr to the Commercial Bank of Ethiopia. Use account number: {{ random_account_number }}.`,
-            boa: `Transfer the total price of {{ order.total_price }}  birr  to the Bank of Abyssinia. Use account number: {{ random_account_number }}.`,
-            awash: `Transfer the total price of {{ order.total_price }} birr  to Awash Bank. Use account number: {{ random_account_number }}.`,
+            boa: `Transfer the total price of {{ order.total_price }} birr to the Bank of Abyssinia. Use account number: {{ random_account_number }}.`,
+            awash: `Transfer the total price of {{ order.total_price }} birr to Awash Bank. Use account number: {{ random_account_number }}.`,
             enat: `Transfer the total price of {{ order.total_price }} birr to Enat Bank. Use account number: {{ random_account_number }}.`,
             dashen: `Transfer the total price of {{ order.total_price }} birr to Dashen Bank. Use account number: {{ random_account_number }}.`,
             chapa: `Chapa payment is coming soon. Please choose another payment method.`,
@@ -124,14 +120,8 @@
             input.addEventListener('change', updateInstructions);
         });
 
-        // Enable submit button when file is uploaded
-        receiptInput.addEventListener('change', function() {
-            submitButton.disabled = !this.files.length;
-        });
-
         document.getElementById('paymentForm').addEventListener('submit', function(event) {
             // Add loading state when form is submitted
-            submitButton.disabled = true;
             submitButton.innerHTML = 'Processing...';
         });
 
