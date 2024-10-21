@@ -246,3 +246,14 @@ class Purchase(models.Model):
 
     def __str__(self):
         return f"Purchase of {self.product.name} - {self.quantity_purchased} units"
+
+class Telegram(models.Model):
+    stock = models.ForeignKey(Stock, on_delete=models.CASCADE, related_name='telegram_posts')
+    date_posted = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Telegram Post for {self.stock.product.name} - {self.date_posted}"
+
+    class Meta:
+        verbose_name = "Telegram Post"
+        verbose_name_plural = "Telegram Posts"

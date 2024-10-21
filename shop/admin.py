@@ -1,7 +1,7 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 from django.utils.html import format_html
-from .models import Order, Product, Category, Subcategory, Brand, ProductModel, Stock, Purchase
+from .models import Order, Product, Category, Subcategory, Brand, ProductModel, Stock, Purchase, Telegram
 from django.core.exceptions import ValidationError
 from django.http import HttpResponse
 import csv
@@ -290,6 +290,23 @@ class StockAdmin(ModelAdmin):
         obj.clean()
         super().save_model(request, obj, form, change)
 
+class TelegramAdmin(ModelAdmin):
+    model = Telegram
+    list_display = ('product_name', 'product_code', 'quantity_in_stock', 'date_posted')
+    search_fields = ('stock__product__name', 'stock__product__code', 'date_posted')
+
+    def product_name(self, obj):
+        return obj.stock.product.name
+    product_name.short_description = 'Product Name'
+
+    def product_code(self, obj):
+        return obj.stock.product.code
+    product_code.short_description = 'Product Code'
+
+    def quantity_in_stock(self, obj):
+        return obj.stock.quantity_in_stock
+    quantity_in_stock.short_description = 'Quantity in Stock'
+
 admin.site.register(Order, OrderAdmin)
 admin.site.register(Product, ProductAdmin)
 admin.site.register(Category, CategoryAdmin)
@@ -298,6 +315,7 @@ admin.site.register(Brand, BrandAdmin)
 admin.site.register(ProductModel, ProductModelAdmin)
 admin.site.register(Stock, StockAdmin)
 admin.site.register(Purchase, PurchaseAdmin)
+admin.site.register(Telegram, TelegramAdmin)
 
 admin.site.site_header = "Store Administration"
 admin.site.site_title = "Shop Admin Portal"
