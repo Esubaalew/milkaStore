@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from datetime import datetime
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -74,6 +74,7 @@ class ProductModel(models.Model):
 # Product model
 class Product(models.Model):
     name = models.CharField(max_length=255)
+    code = models.CharField(max_length=50, blank=True, null=True, unique=True, help_text="Unique product code")
     category = models.ForeignKey(
         'Category', related_name='items', on_delete=models.CASCADE, null=True, blank=True
     )
@@ -95,9 +96,6 @@ class Product(models.Model):
 
     class Meta:
         ordering = ['-date_added']
-        verbose_name = "Purchase"
-        verbose_name_plural = "Purchases"
-
     def __str__(self):
         return self.name
 
@@ -106,8 +104,41 @@ class Product(models.Model):
             raise ValidationError("Category, Subcategory, Brand, and Model must be specified.")
 
     def save(self, *args, **kwargs):
-        self.clean()  # Ensure validation is called on save
-        super(Product, self).save(*args, **kwargs)
+        self.clean()  # Call the clean method for validation
+
+        # Use a transaction to ensure all operations succeed or fail together
+        with transaction.atomic():
+            # Check if it's a new product (no PK yet)
+            is_new_product = self.pk is None
+
+            # If not a new product, retrieve the old quantity before saving
+            if not is_new_product:
+                original_product = Product.objects.get(pk=self.pk)
+                old_quantity = original_product.quantity
+            else:
+                old_quantity = 0
+
+            super(Product, self).save(*args, **kwargs)  # Save the product first
+
+            # Calculate how much new quantity is added
+            added_quantity = self.quantity - old_quantity
+
+            # Create a new Purchase entry for the added quantity (even if updated product)
+            if added_quantity > 0:
+                Purchase.objects.create(
+                    product=self,
+                    quantity_purchased=added_quantity,  # Track only the additional quantity
+                    added_by=kwargs.get('user', None)  # Pass user if applicable
+                )
+
+            # Update or create the stock (Store) for this product
+            stock, created = Stock.objects.get_or_create(product=self)
+            if created:
+                stock.quantity_in_stock = self.quantity
+            else:
+                stock.quantity_in_stock += added_quantity  # Increment stock by the new quantity
+
+            stock.save()
 
 class Order(models.Model):
     PAYMENT_METHODS = [
@@ -205,3 +236,13 @@ class Stock(models.Model):
             self.quantity_in_stock = self.product.quantity
 
         super().save(*args, **kwargs)
+
+
+class Purchase(models.Model):
+    product = models.ForeignKey(Product, related_name='purchases', on_delete=models.CASCADE)
+    quantity_purchased = models.PositiveIntegerField()
+    purchase_date = models.DateTimeField(auto_now_add=True)
+    added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return f"Purchase of {self.product.name} - {self.quantity_purchased} units"

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 from django.utils.html import format_html
-from .models import Order, Product, Category, Subcategory, Brand, ProductModel, Stock
+from .models import Order, Product, Category, Subcategory, Brand, ProductModel, Stock, Purchase
 from django.core.exceptions import ValidationError
 from django.http import HttpResponse
 import csv
@@ -110,6 +110,7 @@ class OrderAdmin(ModelAdmin):
 class ProductAdmin(ModelAdmin):
     model = Product
     list_display = (
+        'code',
         'name',
         'short_description',
         'quantity',
@@ -118,7 +119,7 @@ class ProductAdmin(ModelAdmin):
         'date_added'
     )
     list_filter = ('name', 'price', 'date_added')
-    search_fields = ('name', 'price', 'date_added')
+    search_fields = ('code','name', 'price', 'date_added')
     ordering = ('-date_added',)
 
     def short_description(self, obj):
@@ -137,10 +138,10 @@ class ProductAdmin(ModelAdmin):
         response['Content-Disposition'] = 'attachment; filename="products.csv"'
 
         writer = csv.writer(response)
-        writer.writerow(['Name', 'Description', 'Quantity', 'Price', 'Date Added'])  # CSV Header
+        writer.writerow(['Code', 'Name', 'Description', 'Quantity', 'Price', 'Date Added'])  # CSV Header
 
         for product in queryset:
-            writer.writerow([product.name, product.description, product.quantity, product.price, product.date_added])  # CSV Data
+            writer.writerow([product.code,product.name, product.description, product.quantity, product.price, product.date_added])  # CSV Data
 
         return response
 
@@ -170,6 +171,78 @@ class ProductAdmin(ModelAdmin):
 
     # Adding the actions to the admin
     actions = [export_as_csv, export_as_excel]
+
+class PurchaseAdmin(ModelAdmin):
+    model = Purchase
+    list_display = ('product_name', 'product_code', 'product_brand', 'quantity_purchased', 'purchase_date')
+    list_filter = ('product__name', 'quantity_purchased', 'purchase_date', 'product__brand__name')  # Filter by product's brand
+    search_fields = ('product__name', 'product__code', 'product__brand__name', 'quantity_purchased', 'purchase_date')
+
+    # Custom method to display the product's name
+    def product_name(self, obj):
+        return obj.product.name
+    product_name.short_description = 'Product Name'
+
+    # Custom method to display the product's code
+    def product_code(self, obj):
+        return obj.product.code
+    product_code.short_description = 'Product Code'
+
+    # Custom method to display the product's brand
+    def product_brand(self, obj):
+        return obj.product.brand.name if obj.product.brand else None
+    product_brand.short_description = 'Product Brand'
+
+    # CSV export action
+    def export_as_csv(self, request, queryset):
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="purchases.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(['Product Name', 'Product Code', 'Product Brand', 'Quantity Purchased', 'Purchase Date'])  # CSV Header
+
+        for purchase in queryset:
+            writer.writerow([
+                purchase.product.name,
+                purchase.product.code,
+                purchase.product.brand.name if purchase.product.brand else '',
+                purchase.quantity_purchased,
+                purchase.purchase_date
+            ])  # CSV Data
+
+        return response
+
+    # Excel export action
+    def export_as_excel(self, request, queryset):
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename="purchases.xlsx"'
+
+        workbook = Workbook()
+        worksheet = workbook.active
+        worksheet.title = 'Purchases'
+
+        # Write headers
+        headers = ['Product Name', 'Product Code', 'Product Brand', 'Quantity Purchased', 'Purchase Date']
+        worksheet.append(headers)
+
+        # Write data
+        for purchase in queryset:
+            worksheet.append([
+                purchase.product.name,
+                purchase.product.code,
+                purchase.product.brand.name if purchase.product.brand else '',
+                purchase.quantity_purchased,
+                purchase.purchase_date
+            ])  # Purchase data
+
+        workbook.save(response)
+        return response
+
+    # Adding the actions to the admin
+    actions = [export_as_csv, export_as_excel]
+
+    export_as_csv.short_description = "Export Selected Purchases as CSV"
+    export_as_excel.short_description = "Export Selected Purchases as Excel"
 
 class CategoryAdmin(ModelAdmin):
     model = Category
@@ -224,6 +297,7 @@ admin.site.register(Subcategory, SubcategoryAdmin)
 admin.site.register(Brand, BrandAdmin)
 admin.site.register(ProductModel, ProductModelAdmin)
 admin.site.register(Stock, StockAdmin)
+admin.site.register(Purchase, PurchaseAdmin)
 
 admin.site.site_header = "Store Administration"
 admin.site.site_title = "Shop Admin Portal"
