@@ -22,6 +22,14 @@ class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
 
+from django.shortcuts import render, get_object_or_404, redirect
+from django.core.exceptions import ValidationError
+from .models import Product, Order
+from .forms import ReceiptUploadForm
+import logging
+
+logger = logging.getLogger(__name__)
+
 @csrf_protect
 def webapp_view(request):
     logger.info(f"Request Method: {request.method}")
@@ -81,7 +89,7 @@ def webapp_view(request):
 
         try:
             # Validate the order before saving
-            order.full_clean()  # Calls the clean() method for validation
+            # order.full_clean()  # Calls the clean() method for validation
             order.save()  # Save if clean passes
             logger.info(f"Order created successfully for {product.name}, Quantity: {quantity}")
             return redirect('payment_choice', order_id=order.id)
@@ -97,18 +105,27 @@ def webapp_view(request):
     logger.info(f"Rendering product page for product: {product.name}")
     return render(request, 'webapp.html', {'product': product})
 
+
 @csrf_protect
 def payment_choice_view(request, order_id):
     order = get_object_or_404(Order, id=order_id)
+    print(order.product)
+
+    # Debug log to check if the order has a valid product
+    if not order.product:
+        logger.error(f"Order ID {order_id} has no product associated with it.")
+        return render(request, '404.html', {
+            'error': 'This order does not have an associated product.'
+        })
 
     if request.method == 'POST':
-        form = ReceiptUploadForm(request.POST, request.FILES)
+        form = ReceiptUploadForm(request.POST)
         if form.is_valid():
             payment_method = form.cleaned_data.get('payment_method')
-            receipt_file = form.cleaned_data.get('receipt_file')
+            payment_ref = form.cleaned_data.get('payment_ref')
 
             order.payment_method = payment_method
-            order.receipt_file = receipt_file
+            order.payment_ref = payment_ref
             order.save()
 
             return render(request, 'payment_success.html', {'order': order})

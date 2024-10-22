@@ -3,6 +3,7 @@ from datetime import datetime
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 
+
 # Category model
 class Category(models.Model):
     name = models.CharField(max_length=255)
@@ -45,7 +46,7 @@ class Brand(models.Model):
             raise ValidationError("Subcategory must be specified for the brand.")
 
     def save(self, *args, **kwargs):
-        self.clean()  # Ensure validation is called on save
+        self.clean()
         super(Brand, self).save(*args, **kwargs)
 
 
@@ -96,6 +97,7 @@ class Product(models.Model):
 
     class Meta:
         ordering = ['-date_added']
+
     def __str__(self):
         return self.name
 
@@ -140,6 +142,7 @@ class Product(models.Model):
 
             stock.save()
 
+
 class Order(models.Model):
     PAYMENT_METHODS = [
         ('chapa', 'Chapa'),
@@ -156,7 +159,7 @@ class Order(models.Model):
         ('online', 'online'),
     ]
 
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)
     order_type = models.CharField(max_length=10, choices=ORDER_TYPES, default='manual')
     full_name = models.CharField(max_length=100, blank=True, null=True)
     address = models.CharField(max_length=255)
@@ -173,32 +176,13 @@ class Order(models.Model):
         ordering = ['-order_date']
         verbose_name = "Sale"
         verbose_name_plural = "Sales"
-    def clean(self):
-        if self.quantity <= 0:
-            raise ValidationError("Quantity cannot be zero or negative.")
-
-        if self.product.quantity is None:
-            raise ValidationError(f"The product '{self.product.name}' does not have a set quantity.")
-
-        # Check if the product has stock
-        try:
-            stock = Stock.objects.get(product=self.product)
-        except Stock.DoesNotExist:
-            raise ValidationError(f"Stock entry for product '{self.product.name}' does not exist. Make sure you add stock(Store) first.")
-
-
-        if self.quantity > stock.quantity_in_stock:
-                raise ValidationError(
-                    f"You cannot order more than the available stock of {stock.quantity_in_stock} units."
-                )
 
     def save(self, *args, **kwargs):
-        self.clean()
         self.total_price = self.product.price * self.quantity
         super(Order, self).save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.product.name} - {self.quantity} pcs"
+        return f"{self.product} - {self.quantity} pcs"
 
 
 # Stock model for product inventory
@@ -246,6 +230,7 @@ class Purchase(models.Model):
 
     def __str__(self):
         return f"Purchase of {self.product.name} - {self.quantity_purchased} units"
+
 
 class Telegram(models.Model):
     stock = models.ForeignKey(Stock, on_delete=models.CASCADE, related_name='telegram_posts')

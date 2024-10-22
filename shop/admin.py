@@ -11,13 +11,15 @@ from openpyxl import Workbook
 class OrderAdmin(ModelAdmin):
     model = Order
     list_display = (
-        'product_name',
+        'product',
+        'order_type',
         'full_name',
         'address',
         'phone_number',
         'comment',
         'quantity',
         'order_date',
+        'payment_ref',
         'is_paid',
     )
     list_filter = (
@@ -38,9 +40,6 @@ class OrderAdmin(ModelAdmin):
     )
     ordering = ('-order_date',)
 
-    def product_name(self, obj):
-        return obj.product.name
-    product_name.short_description = 'Product'
 
     def export_as_csv(self, request, queryset):
         # Create the response object for CSV
