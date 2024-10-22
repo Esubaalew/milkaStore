@@ -19,6 +19,7 @@ class OrderAdmin(ModelAdmin):
         'comment',
         'quantity',
         'order_date',
+         'payment_method',
         'payment_ref',
         'is_paid',
     )
@@ -39,6 +40,7 @@ class OrderAdmin(ModelAdmin):
         'comment'
     )
     ordering = ('-order_date',)
+    list_per_page = 10
 
 
     def export_as_csv(self, request, queryset):
@@ -120,6 +122,7 @@ class ProductAdmin(ModelAdmin):
     list_filter = ('name', 'price', 'date_added')
     search_fields = ('code','name', 'price', 'date_added')
     ordering = ('-date_added',)
+    list_per_page = 10
 
     def short_description(self, obj):
         return obj.description if len(obj.description) <= 50 else f"{obj.description[:50]}..."
@@ -176,6 +179,7 @@ class PurchaseAdmin(ModelAdmin):
     list_display = ('product_name', 'product_code', 'product_brand', 'quantity_purchased', 'purchase_date')
     list_filter = ('product__name', 'quantity_purchased', 'purchase_date', 'product__brand__name')  # Filter by product's brand
     search_fields = ('product__name', 'product__code', 'product__brand__name', 'quantity_purchased', 'purchase_date')
+    list_per_page = 10
 
     # Custom method to display the product's name
     def product_name(self, obj):
@@ -247,6 +251,7 @@ class CategoryAdmin(ModelAdmin):
     model = Category
     list_display = ('name', )
     list_filter = ('name', )
+    list_per_page = 10
     search_fields = ('name', )
 
 class SubcategoryAdmin(ModelAdmin):
@@ -254,24 +259,28 @@ class SubcategoryAdmin(ModelAdmin):
     list_display = ('name', 'category', )
     list_filter = ('name', 'category', )
     search_fields = ('name', 'category',)
+    list_per_page = 10
 
 class BrandAdmin(ModelAdmin):
     model = Brand
     list_display = ('name', 'subcategory', )
     list_filter = ('name', 'subcategory', )
+    list_per_page = 10
     search_fields = ('name', 'subcategory',)
 
 class ProductModelAdmin(ModelAdmin):
     model = ProductModel
     list_display = ('name', 'brand', 'subcategory', )
     list_filter = ('name', 'brand', 'subcategory', )
+    list_per_page = 10
     search_fields = ('name', 'brand', 'subcategory',)
 
 class StockAdmin(ModelAdmin):
     model = Stock
-    list_display = ('product', 'quantity_in_stock', 'restock_date', 'added_by')  # Display the fields we have
-    list_filter = ('product', 'quantity_in_stock', 'restock_date', 'added_by')  # Filterable fields
+    list_display = ('product', 'quantity_in_stock', 'restock_date', )  # Display the fields we have
+    list_filter = ('product', 'quantity_in_stock', 'restock_date',)  # Filterable fields
     search_fields = ('product__name', 'quantity_in_stock', 'restock_date')  # Searchable fields
+    list_per_page = 10
 
     actions = ['restock_items']
 
@@ -293,6 +302,7 @@ class TelegramAdmin(ModelAdmin):
     model = Telegram
     list_display = ('product_name', 'product_code', 'quantity_in_stock', 'date_posted')
     search_fields = ('stock__product__name', 'stock__product__code', 'date_posted')
+    list_per_page = 10
 
     def product_name(self, obj):
         return obj.stock.product.name

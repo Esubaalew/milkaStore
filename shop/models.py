@@ -190,7 +190,6 @@ class Stock(models.Model):
     product = models.ForeignKey(Product, related_name='stocks', on_delete=models.CASCADE)
     quantity_in_stock = models.PositiveIntegerField()
     restock_date = models.DateTimeField(auto_now_add=True)
-    added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         return f"Stock for {self.product.name} - {self.quantity_in_stock} units"
